@@ -102,13 +102,11 @@ ggplot(data = sum_country_awards, aes(x = Country, y = Total_Awards, fill = Coun
 ### 3.4 IQ Analysis
 
 ```{r}
-# Summary of IQ
 summary(topIntelligent$IQ)
 ```
 
 IQ and Country
 ```{r}
-# IQ by Country
 IQ_by_Country <- topIntelligent %>%
   group_by(Country) %>%
   summarize(Average_IQ = mean(IQ, na.rm = TRUE))
@@ -118,7 +116,6 @@ IQ_by_Country
 ```
 
 ```{r}
-# Plot
 ggplot(data = IQ_by_Country, aes(x = Country, y = Average_IQ, fill = Country)) +
   geom_bar(stat = "identity") +
   scale_y_continuous(labels = scales::label_number()) +
@@ -134,12 +131,10 @@ There is almost no IQ variance by country.
 
 - IQ and Education
 ```{r}
-# Education table
 table(topIntelligent$Education)
 ```
 
 ```{r}
-# IQ by Education
 IQ_by_Education <- topIntelligent %>%
   group_by(Education) %>%
   summarise(Avr_IQ = mean(IQ, na.rm = TRUE))
@@ -149,13 +144,11 @@ IQ_by_Education
 - IQ and Influence
 
 ```{r}
-# Influence table
 table(topIntelligent$Influence)
 
 ```
 
 ```{r}
-# IQ by Influence
 IQ_by_Influence <- topIntelligent %>%
   group_by(Influence) %>%
   summarize(Average_IQ = mean(IQ, na.rm = TRUE))
@@ -175,7 +168,7 @@ IQ_by_Awards
 ```
 
 **Interpretation:**
-IQ does not show variance by the variables inspected so far. 
+IQ has not shown variance across the variables inspected so far. 
 
 ### 3.5 Fields Analysis
 
@@ -197,7 +190,6 @@ field_with_most_awards <- award_by_field %>%
 
 
 ```{r}
-# Plot
 ggplot(data = field_with_most_awards, aes(x = Field.of.Expertise, y = total_awards)) +
   geom_bar(stat = "identity", position = "dodge", fill = "orange") +
   scale_y_continuous(labels = scales::label_number()) +
@@ -210,12 +202,9 @@ ggplot(data = field_with_most_awards, aes(x = Field.of.Expertise, y = total_awar
 - Distribution of different awards in varying fields. 
 
 ```{r}
-# Fields by Awards
 field_by_award <- topIntelligent_cleaned %>%
   count(Field.of.Expertise, Awards)
 
-
-# Plot
 ggplot(data = field_by_award, aes(x = Field.of.Expertise, y = n, fill = Awards)) +
   geom_bar(stat = "identity", position = "dodge") +
   scale_y_continuous(labels = scales::label_number()) +
@@ -226,7 +215,7 @@ ggplot(data = field_by_award, aes(x = Field.of.Expertise, y = n, fill = Awards))
 ```
 
 **Interpretation:**
-Physics has the most awards. And in Physics, Nobel Prize is granted most. 
+Physics has the most awards. In Physics, the Nobel Prize is granted to most. 
 
 ### 4. How Can One Get a Nobel Prize: Regression Analysis
 
@@ -234,9 +223,9 @@ In this section, I will try to predict what factors contribute to receiving a No
 
 ### 4.1 Logistic Regression Analysis
 
-### Creating a New Column for Nobel Prize
+### Creating a New Column for the Nobel Prize
 
-I will create a new column, `NobelPrize`, with dummy variables:
+I will create a new column, `NobelPrize,` with dummy variables:
 - `0` will be the reference category for not getting a Nobel Prize.
 - `1` will indicate receiving a Nobel Prize.
 
@@ -256,7 +245,7 @@ table(topIntelligent_cleaned$NobelPrize)
 table(topIntelligent_cleaned$NobelPrize, topIntelligent_cleaned$Country)
 ```
 
-I need to convert categorical variables from string format to factors for the logistic regression model.
+I must convert categorical variables from string format to factors for the logistic regression model.
 
 ```{r}
 topIntelligent_cleaned$Country <- as.factor(topIntelligent_cleaned$Country)
@@ -270,7 +259,7 @@ topIntelligent_cleaned$Influence <- as.factor(topIntelligent_cleaned$Influence)
 
 #### Evaluate Model Fit Using Backward Selection
 
-I will evaluate the model fit using a backward selection method. I include all variables in the model and remove them one at a time, checking the model fit using AIC (Akaike Information Criterion) and Deviance.
+I will evaluate the model fit using a backward selection method. I include all variables in the model and remove them individually, checking the model fit using AIC (Akaike Information Criterion) and Deviance.
 
 
 ```{r}
@@ -286,7 +275,7 @@ stepwise_backward_model <- step(backward_model, direction = "backward")
 ```
 
 **Interpretation:**
-Only IQ turns out to be a significant in predicting to Nobel Prize win. Removing this variable does degrade the model fit (i.e., does increase AIC).
+Only IQ turns out to be significant in predicting Nobel Prize wins. Removing this variable degrades the model fit (i.e., increases AIC).
 
 
 - Validating significant predictor 
@@ -304,7 +293,7 @@ tidy(stepwise_backward_model, exponentiate = TRUE)
 ```
 
 
--- To validate regression model output, now I will use Chi-Squared test to find association between the outcome and some categorical variables at a time.
+-- To validate regression model output, now I will use the Chi-Squared test to find the association between the outcome and some categorical variables at a time.
 
 
 ```{r}
@@ -330,7 +319,7 @@ Again, no categorical variables under investigation are significant in predictin
 
 ### 4.1 Lasso Regression Analysis
 
-I will try out Lasso Regression to find which variables are effective in predicting Nobel Prize win.  
+I will try out Lasso Regression to find which variables effectively predict a Nobel Prize win.  
 
 ```{r}
 # install.packages("glmnet")
@@ -360,7 +349,7 @@ coef(lasso_model, s = best_lambda)
 
 **Interpretation:**
 
-Lasso model finds the most relevant predictors to the outcome variable. Here, non-zero coefficients contribute predicting Nobel Prize win. Only the country USA and IQ have non-zero coefficients. And, IQ slightly affects the Nobel prize win: Higher IQ is associated with a very slight increase in the log-odds of receiving a Nobel Prize. On the other hand, being a US citizen decreases receiving a Nobel Prize, which can be confirmed by the following contingency table. 
+The Lasso Regression model finds the most relevant predictors to the outcome variable. Here, non-zero coefficients contribute to predicting the Nobel Prize win. Only the USA and IQ have non-zero coefficients. Also, IQ slightly affects the Nobel Prize win: Higher IQ is associated with a slight increase in the log-odds of receiving a Nobel Prize. On the other hand, being a US citizen decreases receiving a Nobel Prize, which the following contingency table can confirm. 
 
 ```{r}
 table(topIntelligent_cleaned$Country, topIntelligent_cleaned$NobelPrize)
@@ -368,13 +357,13 @@ table(topIntelligent_cleaned$Country, topIntelligent_cleaned$NobelPrize)
 
 **Summary:**
 
-In this project, I have worked on Top Intelligent People in the world and and tried to gain some insight on their profile using EDA and regression analysis. EDA has provided descriptive information on questions regarding sinlge and multi-variables. Some of them include Distribution of Awards by Country, Distribution of Awards by Country, IQ and its relation with some variables (e.g., Awards, Education, Country etc.), Distribution of Awards by Fields. Questions in EDA can be expanded depending on the needs. 
+In this project, I have worked on the Top Intelligent People in the world and tried to gain insight into their profiles using EDA and regression analysis. EDA has provided descriptive information on questions regarding single and multi-variables. Some include the Distribution of Awards by Country, the Distribution of Awards by Country, IQ and its relation with variables (e.g., Awards, Education, Country, etc.), and the Distribution of Awards by Fields. Questions in EDA can be expanded depending on the needs. 
 
-In the last section, I was curious about what predictors may contribute winning a Nobel Prize. The results from Logistic Regression showed that only IQ is significant in predicting winning a Nobel Prize. 
+In the last section, I wondered what predictors may contribute to winning a Nobel Prize. The results from Logistic Regression showed that only IQ is significant in predicting winning a Nobel Prize. 
 
-Further, I wanted to validate the results of Logistic Regression by building a Lasso Regression model, which helps identifying which predictors (variables) are most important by shrinking the less significant coefficients to zero. This model is considered to be useful in datasets with many variables or multicollinear variables, as it can help simplify the model by focusing on the most relevant features/variables. Simply, with Lasso Regression, I wanted to increase the predictive accuracy of my model by selecting important variables, and to better understand the key factors influencing Nobel Prize achievements.
+Further, I wanted to validate the results of Logistic Regression by building a Lasso Regression model, which helps identify which predictors (variables) are most important by shrinking the less significant coefficients to zero. This model is helpful in datasets with many multicollinear variables, as it can help simplify the model by focusing on the most relevant features/variables. With Lasso Regression, I wanted to increase the predictive accuracy of my model by selecting essential variables and better understanding the key factors influencing Nobel Prize achievements.
 
-The results of the Lasso Regression model revealed that IQ has slightly influential in predicting Nobel Prize win, while the country USA has negatively associated with winning a Nobel Prize.  
+The results of the Lasso Regression model revealed that IQ is slightly influential in predicting Nobel Prize wins, while the USA is negatively associated with winning a Nobel Prize.  
 
 
 
