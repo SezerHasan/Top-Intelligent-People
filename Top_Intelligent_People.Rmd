@@ -1,0 +1,386 @@
+---
+title: "Analysis of World's Top Intelligent Individuals"
+author: "Hasan Sezer"
+date: "2024-08-16"
+output:
+  
+  pdf_document: default
+  html_document: default
+---
+
+
+## 1. Data Preparation
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(car)
+```
+
+```{r}
+topIntelligent <- read.csv("top_intelligent.csv")
+glimpse(topIntelligent)
+```
+## 2. Data Cleaning
+Check for "N/A" values
+```{r}
+sapply(topIntelligent, function(x) sum(x == "N/A"))
+```
+
+
+```{r}
+table(topIntelligent$Awards)
+```
+Awards column has 1249 NAs in string format. 
+
+Drop NAs in Awards
+
+```{r}
+topIntelligent_cleaned <- subset(topIntelligent, Awards != "N/A")
+table(topIntelligent_cleaned$Awards)
+```
+
+## 3. Descriptive Statistics
+### 3.1 Distribution of Awards by Each Country
+
+
+```{r}
+Awards_by_Country <- topIntelligent_cleaned %>%
+  count(Country, Awards)
+```
+
+```{r}
+ggplot(data = Awards_by_Country, aes(x = Country, y = n, fill = Awards)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(labels = scales::label_number()) +
+  labs(title = "Number of Awards by Country",
+       x = "Country",
+       y = "Count") +
+  theme_minimal()
+```
+
+### 3.2 The Country with the Most Nobel Prizes
+
+```{r}
+NobelPrize <- Awards_by_Country %>%
+  filter(Awards == "Nobel Prize")
+
+```
+
+```{r}
+ggplot(data = NobelPrize, aes(x = Country, y = n)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "Skyblue") +
+  scale_y_continuous(labels = scales::label_number()) +
+  labs(title = "Number of Nobel Prizes by Country",
+       x = "Country",
+       y = "Count") +
+  theme_minimal()
+```
+
+### 3.3 The Country with the Most Awards
+
+```{r}
+sum_country_awards <- topIntelligent %>%
+  group_by(Country) %>%
+  summarize(Total_Awards = n())
+
+sum_country_awards %>%
+  arrange(desc(Total_Awards))
+```
+
+```{r}
+ggplot(data = sum_country_awards, aes(x = Country, y = Total_Awards, fill = Country)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(labels = scales::label_number()) +
+  labs(title = "Total Awards by Country",
+       x = "Country",
+       y = "Count") +
+  theme_minimal()
+```
+
+### 3.4 IQ Analysis
+
+```{r}
+# Summary of IQ
+summary(topIntelligent$IQ)
+```
+
+IQ and Country
+```{r}
+# IQ by Country
+IQ_by_Country <- topIntelligent %>%
+  group_by(Country) %>%
+  summarize(Average_IQ = mean(IQ, na.rm = TRUE))
+
+IQ_by_Country
+
+```
+
+```{r}
+# Plot
+ggplot(data = IQ_by_Country, aes(x = Country, y = Average_IQ, fill = Country)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::label_number()) +
+  labs(title = "Average IQ by Country",
+       x = "Country",
+       y = "Average IQ") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+**Interpretation:**
+
+There is almost no IQ variance by country. 
+
+- IQ and Education
+```{r}
+# Education table
+table(topIntelligent$Education)
+```
+
+```{r}
+# IQ by Education
+IQ_by_Education <- topIntelligent %>%
+  group_by(Education) %>%
+  summarise(Avr_IQ = mean(IQ, na.rm = TRUE))
+
+IQ_by_Education
+```
+- IQ and Influence
+
+```{r}
+# Influence table
+table(topIntelligent$Influence)
+
+```
+
+```{r}
+# IQ by Influence
+IQ_by_Influence <- topIntelligent %>%
+  group_by(Influence) %>%
+  summarize(Average_IQ = mean(IQ, na.rm = TRUE))
+
+IQ_by_Influence
+
+```
+
+
+- IQ by Awards
+```{r}
+IQ_by_Awards <- topIntelligent_cleaned %>%
+  group_by(Awards) %>%
+  summarise(Avr_IQ = mean(IQ, na.rm = TRUE))
+
+IQ_by_Awards
+```
+
+**Interpretation:**
+IQ does not show variance by the variables inspected so far. 
+
+### 3.5 Fields Analysis
+
+- Field with the most awards
+
+```{r}
+
+award_by_field <- topIntelligent_cleaned %>%
+  count(Field.of.Expertise, Awards)
+```
+
+
+```{r}
+
+field_with_most_awards <- award_by_field %>%
+  group_by(Field.of.Expertise) %>%
+  summarise(total_awards = sum(n))
+```
+
+
+```{r}
+# Plot
+ggplot(data = field_with_most_awards, aes(x = Field.of.Expertise, y = total_awards)) +
+  geom_bar(stat = "identity", position = "dodge", fill = "orange") +
+  scale_y_continuous(labels = scales::label_number()) +
+  labs(title = "Total Awards by Fields",
+       x = "Field of Expertise",
+       y = "Count") +
+  theme_minimal()
+```
+
+- Distribution of different awards in varying fields. 
+
+```{r}
+# Fields by Awards
+field_by_award <- topIntelligent_cleaned %>%
+  count(Field.of.Expertise, Awards)
+
+
+# Plot
+ggplot(data = field_by_award, aes(x = Field.of.Expertise, y = n, fill = Awards)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  scale_y_continuous(labels = scales::label_number()) +
+  labs(title = "Total Awards by Fields",
+       x = "Field of Expertise",
+       y = "Count") +
+  theme_minimal()
+```
+
+**Interpretation:**
+Physics has the most awards. And in Physics, Nobel Prize is granted most. 
+
+### 4. How Can One Get a Nobel Prize: Regression Analysis
+
+In this section, I will try to predict what factors contribute to receiving a Nobel Prize.
+
+### 4.1 Logistic Regression Analysis
+
+### Creating a New Column for Nobel Prize
+
+I will create a new column, `NobelPrize`, with dummy variables:
+- `0` will be the reference category for not getting a Nobel Prize.
+- `1` will indicate receiving a Nobel Prize.
+
+```{r create-dummy-variable}
+# Create the Nobel Prize dummy variable
+topIntelligent_cleaned$NobelPrize <- ifelse(topIntelligent_cleaned$Awards == "Nobel Prize", 1, 0)
+```
+
+```{r}
+str(topIntelligent_cleaned)
+```
+```{r}
+table(topIntelligent_cleaned$NobelPrize)
+```
+
+```{r}
+table(topIntelligent_cleaned$NobelPrize, topIntelligent_cleaned$Country)
+```
+
+I need to convert categorical variables from string format to factors for the logistic regression model.
+
+```{r}
+topIntelligent_cleaned$Country <- as.factor(topIntelligent_cleaned$Country)
+topIntelligent_cleaned$Field.of.Expertise <- as.factor(topIntelligent_cleaned$Field.of.Expertise)
+topIntelligent_cleaned$Achievements <- as.factor(topIntelligent_cleaned$Achievements)
+topIntelligent_cleaned$Gender <- as.factor(topIntelligent_cleaned$Gender)
+topIntelligent_cleaned$Education <- as.factor(topIntelligent_cleaned$Education)
+topIntelligent_cleaned$Influence <- as.factor(topIntelligent_cleaned$Influence)
+```
+
+
+#### Evaluate Model Fit Using Backward Selection
+
+I will evaluate the model fit using a backward selection method. I include all variables in the model and remove them one at a time, checking the model fit using AIC (Akaike Information Criterion) and Deviance.
+
+
+```{r}
+backward_model <- glm(NobelPrize ~ Country + Field.of.Expertise + Achievements + Gender + Education + Influence + IQ, data = topIntelligent_cleaned, family = binomial())
+
+stepwise_backward_model <- step(backward_model, direction = "backward")
+
+```
+
+
+```{r}
+# summary(backward_model)
+```
+
+**Interpretation:**
+Only IQ turns out to be a significant in predicting to Nobel Prize win. Removing this variable does degrade the model fit (i.e., does increase AIC).
+
+
+- Validating significant predictor 
+
+
+```{r}
+# Confidence intervals for the model coefficients
+confint.default(backward_model)
+
+# Exponentiated coefficients
+exp(coef(backward_model))
+
+library(broom)
+tidy(stepwise_backward_model, exponentiate = TRUE)
+```
+
+
+-- To validate regression model output, now I will use Chi-Squared test to find association between the outcome and some categorical variables at a time.
+
+
+```{r}
+chisq.test(table(topIntelligent_cleaned$Country, topIntelligent_cleaned$NobelPrize))
+```
+
+```{r}
+chisq.test(table(topIntelligent_cleaned$Gender, topIntelligent_cleaned$NobelPrize))
+```
+```{r}
+chisq.test(table(topIntelligent_cleaned$Education, topIntelligent_cleaned$NobelPrize))
+```
+
+```{r}
+chisq.test(table(topIntelligent_cleaned$Field.of.Expertise, topIntelligent_cleaned$NobelPrize))
+```
+
+```{r}
+chisq.test(table(topIntelligent_cleaned$Achievements, topIntelligent_cleaned$NobelPrize))
+```
+**Interpretation:**
+Again, no categorical variables under investigation are significant in predicting getting a Nobel Prize. 
+
+### 4.1 Lasso Regression Analysis
+
+I will try out Lasso Regression to find which variables are effective in predicting Nobel Prize win.  
+
+```{r}
+# install.packages("glmnet")
+```
+
+```{r}
+library(glmnet)
+```
+
+```{r}
+data_dummy <- model.matrix(NobelPrize ~ Country + Field.of.Expertise + Achievements + Gender + Education + Influence + IQ - 1, data = topIntelligent_cleaned)
+```
+
+```{r}
+X <- data_dummy
+y <- topIntelligent_cleaned$NobelPrize
+```
+
+```{r}
+lasso_model <- cv.glmnet(X, y, family = "binomial", alpha = 1)
+```
+
+```{r}
+best_lambda <- lasso_model$lambda.min
+coef(lasso_model, s = best_lambda)
+```
+
+**Interpretation:**
+
+Lasso model finds the most relevant predictors to the outcome variable. Here, non-zero coefficients contribute predicting Nobel Prize win. Only the country USA and IQ have non-zero coefficients. And, IQ slightly affects the Nobel prize win: Higher IQ is associated with a very slight increase in the log-odds of receiving a Nobel Prize. On the other hand, being a US citizen decreases receiving a Nobel Prize, which can be confirmed by the following contingency table. 
+
+```{r}
+table(topIntelligent_cleaned$Country, topIntelligent_cleaned$NobelPrize)
+```
+
+**Summary:**
+
+In this project, I have worked on Top Intelligent People in the world and and tried to gain some insight on their profile using EDA and regression analysis. EDA has provided descriptive information on questions regarding sinlge and multi-variables. Some of them include Distribution of Awards by Country, Distribution of Awards by Country, IQ and its relation with some variables (e.g., Awards, Education, Country etc.), Distribution of Awards by Fields. Questions in EDA can be expanded depending on the needs. 
+
+In the last section, I was curious about what predictors may contribute winning a Nobel Prize. The results from Logistic Regression showed that only IQ is significant in predicting winning a Nobel Prize. 
+
+Further, I wanted to validate the results of Logistic Regression by building a Lasso Regression model, which helps identifying which predictors (variables) are most important by shrinking the less significant coefficients to zero. This model is considered to be useful in datasets with many variables or multicollinear variables, as it can help simplify the model by focusing on the most relevant features/variables. Simply, with Lasso Regression, I wanted to increase the predictive accuracy of my model by selecting important variables, and to better understand the key factors influencing Nobel Prize achievements.
+
+The results of the Lasso Regression model revealed that IQ has slightly influential in predicting Nobel Prize win, while the country USA has negatively associated with winning a Nobel Prize.  
+
+
+
+
+
+
+
+
+
